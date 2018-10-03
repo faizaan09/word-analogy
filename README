@@ -126,7 +126,7 @@ For analogy task
   - score_maxdiff.pl
     a perl script to evaluate YOUR PREDICTIONS on development data
     Usage:
-      ./score_maxdiff.pl word_analogy_mturk_answers.txt <your prediction file> <output file of result> 
+      ./score_maxdiff.pl word_analogy_dev_mturk_answers.txt <your prediction file> <output file of result> 
 
   - word_analogy_dev.txt
     Data for development. 

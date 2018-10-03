@@ -1,4 +1,4 @@
-import os
+import os,sys
 import pickle
 import numpy as np
 from scipy.spatial.distance import cosine
@@ -6,8 +6,9 @@ from tqdm import tqdm
 
 
 model_path = './models/'
-loss_model = 'cross_entropy'
+# loss_model = 'cross_entropy'
 # loss_model = 'nce'
+loss_model = sys.argv[1]
 
 model_filepath = os.path.join(model_path, 'word2vec_%s.model'%(loss_model))
 
@@ -103,3 +104,15 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+def find_best_20():
+    sim = model.similarity.eval()
+    for i in xrange(valid_size):
+    valid_word = reverse_dictionary[valid_examples[i]]
+    top_k = 8  # number of nearest neighbors
+    nearest = (-sim[i, :]).argsort()[1:top_k + 1]
+    log_str = "Nearest to %s:" % valid_word
+    for k in xrange(top_k):
+        close_word = reverse_dictionary[nearest[k]]
+        log_str = "%s %s," % (log_str, close_word)

@@ -47,53 +47,37 @@ def nce_loss(inputs, weights, biases, labels, sample, unigram_prob):
     sample = tf.convert_to_tensor(sample,dtype=tf.int32)
 
     target_w = tf.reshape(tf.gather(weights,labels),inputs.shape)
-    target_b = tf.reshape(tf.gather(biases,labels),[-1,])
-
-
-    all_PR =  tf.matmul(inputs,tf.transpose(target_w))
-    all_PR = tf.add(all_PR,target_b)
-
-    main_PR = tf.diag_part(all_PR)
-
+    target_b = tf.reshape(tf.gather(biases,labels),[-1,1])
     target_unigram_prob = tf.gather(unigram_prob,labels)
-    # print(type(sample))
-    log_prob = tf.log(sample.shape[0].value*target_unigram_prob + 1e-9)
 
-    main_PR = tf.log(tf.sigmoid(main_PR - log_prob)+ 1e-9)
+
+    main_PR =  tf.multiply(inputs,target_w)
+    main_PR = tf.reduce_sum( main_PR, 1, keepdims=True)
+    main_PR = tf.add(main_PR,target_b)
+
+
+    log_prob = tf.log(sample.shape[0].value*target_unigram_prob + 1e-10)
+    main_PR = tf.log(tf.sigmoid(main_PR - log_prob)+ 1e-10)
 
     # main_PR = tf.Print(main_PR,[main_PR],message="main_PR is...",first_n=2)
 
     sample_weights = tf.reshape(tf.gather(weights,sample),[sample.shape[0],inputs.shape[1]])
     sample_biases = tf.reshape(tf.gather(biases,sample),[-1,])
+    sample_unigram_prob = tf.gather(unigram_prob,sample)
 
 
     sample_PR =  tf.matmul(inputs,tf.transpose(sample_weights))
     sample_PR = tf.add(sample_PR,sample_biases)
 
-
-    sample_unigram_prob = tf.gather(unigram_prob,sample)
-
-    log_prob = tf.log(sample.shape[0].value*sample_unigram_prob+ 1e-9)
-
-    # log_prob = tf.Print(log_prob,[log_prob],message="log_prob is...",first_n=2)
-
+    log_prob = tf.log(sample.shape[0].value*sample_unigram_prob+ 1e-10)
     sample_PR = tf.sigmoid(sample_PR - log_prob)
-
-    # sample_PR = tf.Print(sample_PR,[sample_PR],message="tf.sigmoid(sample_PR - log_prob)...",first_n=2)
-
-    sample_PR = tf.log(1-sample_PR + 1e-9)
-
-    # sample_PR = tf.Print(sample_PR,[sample_PR],message="tf.log(1-sample_PR)...",first_n=2)
-
+    sample_PR = tf.log(1-sample_PR + 1e-10)
     sample_PR = tf.reduce_sum((sample_PR),1)
     
-    # sample_PR = tf.Print(sample_PR,[sample_PR],message="sample_PR is...",first_n=2)
-
     ans = tf.subtract(-main_PR,sample_PR)
 
     # ans = tf.Print(ans,[ans],message="Ans is...",first_n=2)
-    # sess = tf.Session()
-    # print(sess.run(ans))
+    
     return ans
 
 

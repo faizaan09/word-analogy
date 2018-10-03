@@ -31,6 +31,7 @@ import loss_func as tf_func
 
 import pickle
 from collections import namedtuple
+import time
 
 
 
@@ -41,7 +42,7 @@ Word2Vec = namedtuple('Word2Vec', ['train_inputs', 'train_labels', 'loss', 'opti
 
 def maybe_create_path(path):
   if not os.path.exists(path):
-    os.mkdir(path)
+    os.makedirs(path)
     print ("Created a path: %s"%(path))
 
 
@@ -156,33 +157,37 @@ def generate_batch(data, batch_size, num_skips, skip_window):
   ===============================================================================
   """
 
-  # change code later
 
-  span = 2 * skip_window + 1  # [ skip_window target skip_window ]
-  buffer = collections.deque(maxlen=span)  # pylint: disable=redefined-builtin
-  if data_index + span > len(data):
+  window_size = 2 * skip_window + 1  # [ skip_window target skip_window ]
+  cur_window = collections.deque(maxlen=window_size)
+  
+  if data_index + window_size > len(data):
     data_index = 0
-  buffer.extend(data[data_index:data_index + span])
-  data_index += span
+  cur_window.extend(data[data_index:data_index + window_size])
+  data_index += window_size
   for i in range(batch_size // num_skips):
-    context_words = [w for w in range(span) if w != skip_window]
-    words_to_use = random.sample(context_words, num_skips)
-    for j, context_word in enumerate(words_to_use):
-      batch[i * num_skips + j] = buffer[skip_window]
-      labels[i * num_skips + j, 0] = buffer[context_word]
+    context_words = [ind for ind in range(window_size) if ind != skip_window] #skip_window is the index of the target word
+    sample_words = random.sample(context_words, num_skips)
+    
+    for j, word in enumerate(sample_words):
+      batch[i * num_skips + j] = cur_window[skip_window]
+      labels[i * num_skips + j, 0] = cur_window[word]
+    
+    #change here onwards
     if data_index == len(data):
-      buffer.extend(data[0:span])
-      data_index = span
+      cur_window.extend(data[:window_size])
+      data_index = window_size
+    
     else:
-      buffer.append(data[data_index])
+      cur_window.append(data[data_index])
       data_index += 1
   # Backtrack a little bit to avoid skipping words in the end of a batch
-  data_index = (data_index + len(data) - span) % len(data)
+  data_index = (data_index + len(data) - window_size) % len(data)
   return batch, labels
 
 
 
-def build_model(sess, graph, loss_model):
+def build_model(sess, graph, loss_model, lr):
   """
   Builds a tensor graph model
   """
@@ -225,13 +230,13 @@ def build_model(sess, graph, loss_model):
 
       loss = tf.reduce_mean(tf_func.nce_loss(embed, nce_weights, nce_biases, train_labels, sample, unigram_prob))
 
-    # tf.summary.scalar('loss', loss)
+    tf.summary.scalar('loss', loss)
 
     # Construct the SGD optimizer using a learning rate of 1.0.
-    optimizer = tf.train.GradientDescentOptimizer(1e-1).minimize(loss, global_step=global_step)
+    optimizer = tf.train.GradientDescentOptimizer(lr).minimize(loss, global_step=global_step)
 
     # Compute the cosine similarity between minibatch examples and all embeddings.
-    norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
+    norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keepdims=True))
     normalized_embeddings = embeddings / norm
 
     valid_embeddings = tf.nn.embedding_lookup(
@@ -242,10 +247,10 @@ def build_model(sess, graph, loss_model):
     saver = tf.train.Saver(tf.global_variables())
 
     # Save summary
-    # summary = tf.summary.merge_all()
-    # summary_writer = tf.summary.FileWriter(summary_path + '/summary', sess.graph)
-    summary = None
-    summary_writer = None
+    summary = tf.summary.merge_all()
+    summary_writer = tf.summary.FileWriter(summary_path + '/summary', sess.graph)
+    # summary = None
+    # summary_writer = None
 
     tf.global_variables_initializer().run()
     print("Initialized")
@@ -279,8 +284,8 @@ def train(sess, model, data, dictionary, batch_size, num_skips, skip_window,
 
     # We perform one update step by evaluating the optimizer op (including it
     # in the list of returned values for session.run()
-    # _, loss_val, summary = sess.run([model.optimizer, model.loss, model.summary], feed_dict=feed_dict)
-    _, loss_val = sess.run([model.optimizer, model.loss], feed_dict=feed_dict)
+    _, loss_val, summary = sess.run([model.optimizer, model.loss, model.summary], feed_dict=feed_dict)
+    # _, loss_val = sess.run([model.optimizer, model.loss], feed_dict=feed_dict)
     average_loss += loss_val
 
     if step % average_loss_step == 0:
@@ -289,8 +294,8 @@ def train(sess, model, data, dictionary, batch_size, num_skips, skip_window,
       # The average loss is an estimate of the loss over the last 2000 batches.
       print("Average loss at step ", step, ": ", average_loss)
       average_loss = 0
-      # model.summary_writer.add_summary(summary, model.global_step.eval())
-      # model.summary_writer.flush()
+      model.summary_writer.add_summary(summary, model.global_step.eval())
+      model.summary_writer.flush()
 
     # Note that this is expensive (~20% slowdown if computed every 500 steps)
     if step % checkpoint_step == 0:
@@ -304,11 +309,11 @@ def train(sess, model, data, dictionary, batch_size, num_skips, skip_window,
           close_word = reverse_dictionary[nearest[k]]
           log_str = "%s %s," % (log_str, close_word)
         print(log_str)
-      # chkpt_path = os.path.join(checkpoint_model_path, 'w2v_%s.cpkt'%(loss_model))
-      # model.saver.save(sess, chkpt_path, global_step=model.global_step.eval())
+      chkpt_path = os.path.join(checkpoint_model_path, 'w2v_%s.cpkt'%(loss_model))
+      model.saver.save(sess, chkpt_path, global_step=model.global_step.eval())
 
 
-  # model.summary_writer.close()
+  model.summary_writer.close()
 
   # Saving the final embedding to a file   
   final_embeddings = model.normalized_embeddings.eval()
@@ -363,61 +368,81 @@ if __name__ == '__main__':
   #   print(batch[i], reverse_dictionary[batch[i]],
   #         '->', labels[i, 0], reverse_dictionary[labels[i, 0]])
 
+  summary_path = './summaries'
+  maybe_create_path(summary_path)
 
-  ####################################################################################
-  # Hyper Parameters to config
-  batch_size = 128
-  embedding_size = 128  # Dimension of the embedding vector.
-  skip_window = 4       # How many words to consider left and right.
-  num_skips = 8         # How many times to reuse an input to generate a label.
-
-
-  # We pick a random validation set to sample nearest neighbors. Here we limit the
-  # validation samples to the words that have a low numeric ID, which by
-  # construction are also the most frequent.
-  valid_size = 16     # Random set of words to evaluate similarity on.
-  valid_window = 100  # Only pick dev samples in the head of the distribution.
-  valid_examples = np.random.choice(valid_window, valid_size, replace=False)
-  num_sampled = 64    # Number of negative examples to sample.
-
-  # summary_path = './summary_%s'%(loss_model)
-  pretrained_model_path = './pretrained/'
-
-  checkpoint_model_path = './checkpoints_%s/'%(loss_model)
-  model_path = './models'
-
+  with open('config.txt','r') as f:
+    conf = f.readlines()
   
-  # maximum training step
-  max_num_steps  = 200001
-  checkpoint_step = 50000
+  for c in conf:
+    c = c.strip().split(' ')
+    start_time = time.time()
+    print(c)
+    loss_model = c[0]
+    ####################################################################################
+    # Hyper Parameters to config
+    batch_size = 128 #int(c[1]) #128
+    embedding_size = int(c[2])#128  # Dimension of the embedding vector.
+    skip_window = int(c[3]) #5       # How many words to consider left and right.
+    num_skips = int(c[4]) #8         # How many times to reuse an input to generate a label.
+
+
+    # We pick a random validation set to sample nearest neighbors. Here we limit the
+    # validation samples to the words that have a low numeric ID, which by
+    # construction are also the most frequent.
+    valid_size = 16     # Random set of words to evaluate similarity on.
+    valid_window = 100  # Only pick dev samples in the head of the distribution.
+    valid_examples = np.random.choice(valid_window, valid_size, replace=False)
+    num_sampled = 64    # Number of negative examples to sample.
+
+    loss_model_path = '_'.join(c)
+    summary_path = './summaries/' + loss_model_path
+    pretrained_model_path = './pretrained/'
+
+    checkpoint_model_path = './checkpoints/%s/'%(loss_model_path)
+    model_path = './models'
+
     
+    # maximum training step
+    lr = float(c[5])
+    max_num_steps  = int(c[6]) #200001
+    checkpoint_step = 50000
+      
 
-  graph = tf.Graph()
-  with tf.Session(graph=graph) as sess:
+    graph = tf.Graph()
+    with tf.Session(graph=graph) as sess:
 
-    ####################################################################################
-    # Step 4: Build and train a skip-gram model.
-    model = build_model(sess, graph, loss_model)
+      ####################################################################################
+      # Step 4: Build and train a skip-gram model.
+      model = build_model(sess, graph, loss_model,lr)
 
-    # You must start with the pretrained model. 
-    # If you want to resume from your checkpoints, change this path name
+      # You must start with the pretrained model. 
+      # If you want to resume from your checkpoints, change this path name
 
-    load_pretrained_model(sess, model, pretrained_model_path)
-
-
-    ####################################################################################
-    # Step 6: Begin training.
-    maybe_create_path(checkpoint_model_path)
-    embeddings = train(sess, model, data, dictionary, batch_size, num_skips, skip_window, 
-                        max_num_steps, checkpoint_step, loss_model)
+      load_pretrained_model(sess, model, pretrained_model_path)
 
 
-    ####################################################################################
-    # Step 7: Save the trained model.
-    trained_steps = model.global_step.eval()
+      ####################################################################################
+      # Step 6: Begin training.
+      maybe_create_path(checkpoint_model_path)
+      embeddings = train(sess, model, data, dictionary, batch_size, num_skips, skip_window, 
+                          max_num_steps, checkpoint_step, loss_model)
 
-    maybe_create_path(model_path)
-    model_filepath = os.path.join(model_path, 'word2vec_%s.model'%(loss_model))
-    print("Saving word2vec model as [%s]"%(model_filepath))
-    pickle.dump([dictionary, trained_steps, embeddings], open(model_filepath, 'wb'))
 
+      ####################################################################################
+      # Step 7: Save the trained model.
+      trained_steps = model.global_step.eval()
+
+      maybe_create_path(model_path)
+      model_filepath = os.path.join(model_path, 'word2vec_%s.model'%(loss_model_path))
+      print("Saving word2vec model as [%s]"%(model_filepath))
+      pickle.dump([dictionary, trained_steps, embeddings], open(model_filepath, 'wb'))
+
+      os.system('python word_analogy.py ' + loss_model_path)
+      os.system('./score_maxdiff.pl word_analogy_dev_mturk_answers.txt pred.txt op.txt')
+      with open('op.txt','r') as o:
+        op = o.readlines()
+        op = op[-1].strip()
+        acc = op[-5:]
+      with open('results.txt','a') as f:
+        f.write(' '.join(c + [acc, str((time.time() - start_time)/60)]) + '\n')
