@@ -121,6 +121,6 @@ def main():
         f.write('\n'.join(result))
 
 if __name__ == '__main__':
-    # main()
-    find_best_20()
+    main()
+    # find_best_20()
 

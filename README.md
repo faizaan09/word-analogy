@@ -6,12 +6,20 @@ Use those word embeddings to perform word analogy
 Python Version: 3.6.4
 
 Baseline model Accuracy: 
- 1. nce : 
- 2. cross entropy loss:
+ 1. NCE :  
+ 2. Cross Entropy loss:
 
-Best Accuracy achieved:
- 1. nce : 
- 2. cross entropy loss: 
+Best model:
+ 1. NCE : 
+    | Batch_size | Emb_size | Skip_window | num_skips | Learning_rate | Epochs  | Accuracy |
+    |------------|----------|-------------|-----------|---------------|---------|----------|
+
+
+ 2. Cross Entropy loss 
+
+    | Batch_size | Emb_size | Skip_window | num_skips | Learning_rate | Epochs  | Accuracy |
+    |------------|----------|-------------|-----------|---------------|---------|----------|
+    | 128        | 128      | 8           | 8         | 0.005         | 400000  | 33.4%    |
 
 
 ## Implementation details:
@@ -48,6 +56,7 @@ If we reach the end of the dataset, we loop over it.
 * The word2vec_basic.py has been modified to take certain parameters as input from config.txt (where every line has hyperparameter details)
 * The file then goes on to train a model, run it on the word_analogy task, score the results and save the results in a separate file results.txt
 * word_analogy.py currently writes all its outputs to pred.txt, it can be parameterised if needed.
+* finding top 20 similar words to [first, american, would] is implemented as a function in word_analogy.py
 
 ## Experiment Details
 

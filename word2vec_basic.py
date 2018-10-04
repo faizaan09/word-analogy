@@ -157,7 +157,6 @@ def generate_batch(data, batch_size, num_skips, skip_window):
   ===============================================================================
   """
 
-
   window_size = 2 * skip_window + 1  # [ skip_window target skip_window ]
   cur_window = collections.deque(maxlen=window_size)
   
