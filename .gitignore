@@ -3,5 +3,6 @@ text8.zip
 models/
 summaries/
 checkpoints/
+pretrained/
 models/word2vec_nce.model
 models/word2vec_cross_entropy.model

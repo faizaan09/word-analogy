@@ -1,7 +1,4 @@
 # word-analogy
-Coded NCE loss and Binary Cross Entropy loss to create word embeddings.
-
-Use those word embeddings to perform word analogy
 
 Python Version: 3.6.4
 
@@ -11,15 +8,15 @@ Baseline model Accuracy:
 
 Best model:
  1. NCE : 
-    | Batch_size | Emb_size | Skip_window | num_skips | Learning_rate | Epochs  | Accuracy |
-    |------------|----------|-------------|-----------|---------------|---------|----------|
-
+    | neg_samples | Batch_size | Emb_size | Skip_window | num_skips | Learning_rate | Epochs  | Accuracy |
+    |-------------|------------|----------|-------------|-----------|---------------|---------|----------|
+    | 64          | 128        | 128      | 5           | 8         | 0.001         | 1000000 | 33.4%    |
 
  2. Cross Entropy loss 
 
     | Batch_size | Emb_size | Skip_window | num_skips | Learning_rate | Epochs  | Accuracy |
     |------------|----------|-------------|-----------|---------------|---------|----------|
-    | 128        | 128      | 8           | 8         | 0.005         | 400000  | 33.4%    |
+    | 128        | 128      | 8           | 8         | 0.005         | 400000  | 33.6%    |
 
 
 ## Implementation details:
