@@ -165,15 +165,15 @@ def generate_batch(data, batch_size, num_skips, skip_window):
     data_index = 0
   cur_window.extend(data[data_index:data_index + window_size])
   data_index += window_size
+  context_words = [ind for ind in range(window_size) if ind != skip_window] #skip_window is the index of the target word
   for i in range(batch_size // num_skips):
-    context_words = [ind for ind in range(window_size) if ind != skip_window] #skip_window is the index of the target word
+
     sample_words = random.sample(context_words, num_skips)
     
     for j, word in enumerate(sample_words):
       batch[i * num_skips + j] = cur_window[skip_window]
       labels[i * num_skips + j, 0] = cur_window[word]
     
-    #change here onwards
     if data_index == len(data):
       cur_window.extend(data[:window_size])
       data_index = window_size
@@ -181,8 +181,7 @@ def generate_batch(data, batch_size, num_skips, skip_window):
     else:
       cur_window.append(data[data_index])
       data_index += 1
-  # Backtrack a little bit to avoid skipping words in the end of a batch
-  data_index = (data_index + len(data) - window_size) % len(data)
+
   return batch, labels
 
 
@@ -381,7 +380,7 @@ if __name__ == '__main__':
     loss_model = c[0]
     ####################################################################################
     # Hyper Parameters to config
-    batch_size = 128 #int(c[1]) #128
+    batch_size = int(c[1]) #128
     embedding_size = int(c[2])#128  # Dimension of the embedding vector.
     skip_window = int(c[3]) #5       # How many words to consider left and right.
     num_skips = int(c[4]) #8         # How many times to reuse an input to generate a label.

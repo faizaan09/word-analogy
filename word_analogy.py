@@ -1,9 +1,8 @@
 import os,sys
 import pickle
 import numpy as np
-from scipy.spatial.distance import cosine
+from scipy.spatial.distance import cosine,cdist
 from tqdm import tqdm
-
 
 model_path = './models/'
 # loss_model = 'cross_entropy'
@@ -83,6 +82,25 @@ def parse_pairs(words):
 
     return pairs
 
+def find_best_20():
+    
+    examples = ['first','american','would']
+    similar = {}
+    reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    for i in range(3):
+        similar[examples[i]] = []
+        word = dictionary[examples[i]]
+        top_k = 20  # number of nearest neighbors
+        sim = cdist(embeddings,embeddings[word].reshape(1,-1)).reshape(-1,).argsort()
+        nearest = sim[1:top_k + 1]
+        log_str = "Nearest to %s:" % examples[i]
+        for k in range(top_k):
+            close_word = reverse_dictionary[nearest[k]]
+            log_str = "%s %s," % (log_str, close_word)
+            similar[examples[i]].append(close_word)
+        # print(log_str)
+        print(examples[i],' : ',similar[examples[i]])
+
 def main():
     pass
     result = []
@@ -103,16 +121,6 @@ def main():
         f.write('\n'.join(result))
 
 if __name__ == '__main__':
-    main()
+    # main()
+    find_best_20()
 
-
-def find_best_20():
-    sim = model.similarity.eval()
-    for i in xrange(valid_size):
-    valid_word = reverse_dictionary[valid_examples[i]]
-    top_k = 8  # number of nearest neighbors
-    nearest = (-sim[i, :]).argsort()[1:top_k + 1]
-    log_str = "Nearest to %s:" % valid_word
-    for k in xrange(top_k):
-        close_word = reverse_dictionary[nearest[k]]
-        log_str = "%s %s," % (log_str, close_word)

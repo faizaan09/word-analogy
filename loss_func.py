@@ -59,8 +59,6 @@ def nce_loss(inputs, weights, biases, labels, sample, unigram_prob):
     log_prob = tf.log(sample.shape[0].value*target_unigram_prob + 1e-10)
     main_PR = tf.log(tf.sigmoid(main_PR - log_prob)+ 1e-10)
 
-    # main_PR = tf.Print(main_PR,[main_PR],message="main_PR is...",first_n=2)
-
     sample_weights = tf.reshape(tf.gather(weights,sample),[sample.shape[0],inputs.shape[1]])
     sample_biases = tf.reshape(tf.gather(biases,sample),[-1,])
     sample_unigram_prob = tf.gather(unigram_prob,sample)
@@ -75,8 +73,6 @@ def nce_loss(inputs, weights, biases, labels, sample, unigram_prob):
     sample_PR = tf.reduce_sum((sample_PR),1)
     
     ans = tf.subtract(-main_PR,sample_PR)
-
-    # ans = tf.Print(ans,[ans],message="Ans is...",first_n=2)
     
     return ans
 
