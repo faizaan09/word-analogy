@@ -104,7 +104,9 @@ def find_best_20():
 def main():
     pass
     result = []
-    with open("word_analogy_dev.txt","r") as f:
+    dataset = 'word_analogy_test.txt'
+    # dataset = "word_analogy_dev.txt"
+    with open(dataset,"r") as f:
         dev_set = f.read().split('\n')
 
     for sample in dev_set:
