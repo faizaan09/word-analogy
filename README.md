@@ -7,7 +7,8 @@ Baseline model Accuracy:
  2. Cross Entropy loss:
 
 Best model:
- 1. NCE : 
+ 1. NCE 
+ 
     | neg_samples | Batch_size | Emb_size | Skip_window | num_skips | Learning_rate | Epochs  | Accuracy |
     |-------------|------------|----------|-------------|-----------|---------------|---------|----------|
     | 64          | 128        | 128      | 5           | 8         | 0.001         | 1000000 | 33.2%    |
